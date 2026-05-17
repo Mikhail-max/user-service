@@ -10,6 +10,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -179,9 +182,121 @@ class UserServiceTest {
 
 
         verify(userDAO, times(1)).getUserById(eq(TEST_USER_ID));
+    }
 
+    @Test
+    void testGetUserById_DAOReadThrowsException() {
+
+        doThrow(new RuntimeException("Database read error"))
+                .when(userDAO).getUserById(TEST_USER_ID);
+
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> userService.getUserById(TEST_USER_ID),
+                "Ожидалось исключение от DAO при чтении пользователя"
+        );
+
+
+        assertTrue(
+                exception.getMessage().contains("Database read error"),
+                "Сообщение исключения должно содержать 'Database read error'"
+        );
+
+
+        verify(userDAO, times(1)).getUserById(eq(TEST_USER_ID));
+    }
+
+    @Test
+    void testUpdateUser_Success(){
+
+
+        when(userDAO.getUserById(TEST_USER_ID)).thenReturn(testUser);
+        User result = userService.updateUser(TEST_USER_ID, TEST_NAME,TEST_EMAIL,TEST_AGE);
+        assertNotNull(result);
+        assertEquals(TEST_USER_ID, result.getId());
+        assertEquals(TEST_NAME.trim(), result.getName());
+        assertEquals(TEST_EMAIL.toLowerCase(), result.getEmail());
+        assertEquals(TEST_AGE, result.getAge());
+        verify(userDAO, times(1)).getUserById(eq(TEST_USER_ID));
+        verify(userDAO, times(1)).updateUser(argThat(user ->
+                user.getId().equals(TEST_USER_ID) &&
+                        user.getName().equals(TEST_NAME.trim()) &&
+                        user.getEmail().equals(TEST_EMAIL.toLowerCase()) &&
+                        user.getAge().equals(TEST_AGE)
+        ));
+    }
+    @Test
+    void testUpdateUser_UpdateThrowsException() {
+
+        when(userDAO.getUserById(TEST_USER_ID)).thenReturn(testUser);
+        doThrow(new RuntimeException("Database update error"))
+                .when(userDAO).updateUser(any(User.class));
+
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> userService.updateUser(TEST_USER_ID, TEST_NAME, TEST_EMAIL, TEST_AGE),
+                "Ожидалось исключение от DAO при обновлении пользователя"
+        );
+
+
+        assertTrue(
+                exception.getMessage().contains("Database update error"),
+                "Сообщение исключения должно содержать 'Database update error'"
+        );
+
+
+        verify(userDAO, times(1)).getUserById(eq(TEST_USER_ID));
+
+        verify(userDAO, times(1)).updateUser(any(User.class));
+    }
+
+    @Test
+    void testGetAllUsers_Success() {
+        // Given: готовим тестовые данные
+        User user1 = new User("test1", "test1@mail.com", 21);
+        user1.setId(2L);
+        User user2 = new User("test2", "test2@mail.com", 22);
+        user2.setId(3L);
+        User user3 = new User("test3", "test3@mail.com", 23);
+        user3.setId(4L);
+
+        List<User> expectedUsers = Arrays.asList(user1, user2, user3);
+
+
+        when(userDAO.getAllUsers()).thenReturn(expectedUsers);
+
+
+        List<User> result = userService.getAllUsers();
+
+        assertNotNull(result, "Результат не должен быть null при успешном получении всех пользователей");
+        assertEquals(expectedUsers.size(), result.size(),
+                "Размер списка пользователей должен совпадать с ожидаемым");
+
+        // Проверяем, что все пользователи присутствуют и корректны
+        for (int i = 0; i < expectedUsers.size(); i++) {
+            User expected = expectedUsers.get(i);
+            User actual = result.get(i);
+
+            assertNotNull(actual);
+            assertEquals(expected.getId(), actual.getId());
+            assertEquals(expected.getName(), actual.getName());
+            assertEquals(expected.getEmail(), actual.getEmail());
+            assertEquals(expected.getAge(), actual.getAge());
+        }
+
+        // Then: проверяем вызов DAO
+        verify(userDAO, times(1)).getAllUsers();
+    }
+
+    @Test
+    void testGetAllUsers_DAOReadThrowsException(){
 
     }
+
+
+
 
 
 }
