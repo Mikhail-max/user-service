@@ -291,9 +291,104 @@ class UserServiceTest {
     }
 
     @Test
-    void testGetAllUsers_DAOReadThrowsException(){
+    void testGetAllUsers_DAOReadThrowsException() {
 
+        doThrow(new RuntimeException("Database read error"))
+                .when(userDAO).getAllUsers();
+
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> userService.getAllUsers(),
+                "Ожидалось исключение от DAO при чтении списка пользователей"
+        );
+
+
+        assertTrue(
+                exception.getMessage().contains("Database read error"),
+                "Сообщение исключения должно содержать 'Database read error'"
+        );
+
+
+        verify(userDAO, times(1)).getAllUsers();
     }
+
+
+    @Test
+    void testDeleteUser_Success() {
+
+        when(userDAO.deleteUser(TEST_USER_ID)).thenReturn(true);
+
+        boolean result = userService.deleteUser(TEST_USER_ID);
+
+        assertTrue(result, "Метод deleteUser должен возвращать true при успешном удалении");
+
+
+        verify(userDAO, times(1)).deleteUser(eq(TEST_USER_ID));
+
+        verify(userDAO, never()).getUserById(anyLong());
+    }
+    @Test
+    void testDeleteUser_InvalidId_Null() {
+        Long nullId = null;
+
+        boolean result = userService.deleteUser(nullId);
+
+        assertFalse(result, "Метод должен возвращать false при null ID");
+
+        verify(userDAO, never()).deleteUser(anyLong());
+        verify(userDAO, never()).getUserById(anyLong());
+    }
+    @Test
+    void testDeleteUser_InvalidId_Negative() {
+        Long negativeId = -1L;
+
+        boolean result = userService.deleteUser(negativeId);
+
+        assertFalse(result, "Метод должен возвращать false при отрицательном ID");
+
+        verify(userDAO, never()).deleteUser(anyLong());
+        verify(userDAO, never()).getUserById(anyLong());
+    }
+    @Test
+    void testDeleteUser_DAORaisesException() {
+        Long userId = 1L;
+        doThrow(new RuntimeException("Database error"))
+                .when(userDAO)
+                .deleteUser(eq(userId));
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> userService.deleteUser(userId),
+                "Ожидалось исключение при ошибке удаления"
+        );
+
+        assertTrue(
+                exception.getMessage().contains("Database error"),
+                "Сообщение исключения должно содержать 'Database error'"
+        );
+    }
+
+    @Test
+    void testDeleteUser_UserNotFound() {
+
+        Long nonExistentUserId = 999L; // ID несуществующего пользователя
+
+        when(userDAO.deleteUser(nonExistentUserId)).thenReturn(false);
+
+        boolean result = userService.deleteUser(nonExistentUserId);
+
+        assertFalse(result, "Метод deleteUser должен возвращать false, если пользователь не найден");
+
+        verify(userDAO, times(1)).deleteUser(eq(nonExistentUserId));
+        verify(userDAO, never()).getUserById(anyLong());
+    }
+
+
+
+
+
+
 
 
 
