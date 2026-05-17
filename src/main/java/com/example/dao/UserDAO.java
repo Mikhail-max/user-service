@@ -9,5 +9,5 @@ public interface UserDAO {
     User getUserById(Long id);
     List<User> getAllUsers();
     void updateUser(User user);
-    void deleteUser(Long id);
+    boolean deleteUser(Long id);
 }
