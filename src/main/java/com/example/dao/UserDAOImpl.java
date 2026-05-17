@@ -84,6 +84,7 @@ public class UserDAOImpl implements UserDAO {
         logger.debug("Обновление пользователя с ID={}: Name={}, Email={}",
                 user.getId(), user.getName(), user.getEmail());
 
+        // Валидация перед обновлением
         Validation.validateName(user.getName());
         Validation.validateEmail(user.getEmail());
         Validation.validateAge(user.getAge());
