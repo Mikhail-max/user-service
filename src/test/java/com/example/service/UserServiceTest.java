@@ -2,18 +2,15 @@ package com.example.service;
 
 import com.example.dao.UserDAO;
 import com.example.model.User;
-import com.example.validation.Validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
+
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -330,9 +327,9 @@ class UserServiceTest {
     }
     @Test
     void testDeleteUser_InvalidId_Null() {
-        Long nullId = null;
 
-        boolean result = userService.deleteUser(nullId);
+
+        boolean result = userService.deleteUser(null);
 
         assertFalse(result, "Метод должен возвращать false при null ID");
 
