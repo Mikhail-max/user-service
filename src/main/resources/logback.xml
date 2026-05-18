@@ -7,7 +7,10 @@
     </appender>
 
     <logger name="org.hibernate" level="WARN"/>
-    <logger name="com.example" level="INFO"/>
+    <logger name="com.example.dao" level="DEBUG"/>
+    <logger name="com.example.service" level="INFO"/>
+    <logger name="com.example.ui" level="INFO"/>
+    <logger name="com.example.validation" level="INFO"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
