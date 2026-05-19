@@ -5,6 +5,7 @@ import com.example.dao.UserDAOImpl;
 import com.example.service.UserService;
 import com.example.ui.ConsoleUI;
 import com.example.util.HibernateUtil;
+import org.hibernate.SessionFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,9 +14,11 @@ public class Main {
 
     public static void main(String[] args) {
         logger.info("Запуск приложения user-service...");
+        SessionFactory sessionFactory = null;
 
         try {
-            UserDAO userDAO = new UserDAOImpl();
+            sessionFactory = HibernateUtil.buildSessionFactory();
+            UserDAO userDAO = new UserDAOImpl(sessionFactory);
             UserService userService = new UserService(userDAO);
             ConsoleUI consoleUI = new ConsoleUI(userService);
 
@@ -28,8 +31,10 @@ public class Main {
             System.err.println("Произошла непредвиденная ошибка. Приложение будет закрыто.");
             e.printStackTrace();
         } finally {
+            if (sessionFactory != null) {
+                sessionFactory.close();
 
-            HibernateUtil.shutdown();
+            }
         }
     }
 }

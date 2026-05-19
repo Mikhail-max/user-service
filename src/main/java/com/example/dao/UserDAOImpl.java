@@ -4,30 +4,39 @@ import com.example.model.User;
 import com.example.validation.Validation; // Импорт класса валидации
 import com.example.util.HibernateUtil;
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.List;
 
 public class UserDAOImpl implements UserDAO {
+    private final SessionFactory sessionFactory;
     private static final Logger logger = LoggerFactory.getLogger(UserDAOImpl.class);
+
+    public UserDAOImpl(SessionFactory sessionFactory) {
+        this.sessionFactory = sessionFactory;
+    }
+
 
     @Override
     public void saveUser(User user) {
         logger.debug("Начало сохранения пользователя в БД: Name={}, Email={}",
                 user.getName(), user.getEmail());
 
-        // Валидация перед сохранением
         Validation.validateName(user.getName());
         Validation.validateEmail(user.getEmail());
         Validation.validateAge(user.getAge());
 
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+        try (Session session = sessionFactory.openSession()) {
             Transaction transaction = session.beginTransaction();
-
             try {
                 session.save(user);
                 transaction.commit();
+                // Явно обновляем объект, чтобы получить ID
+                if (user.getId() == null) {
+                    user.setId((Long) session.getIdentifier(user));
+                }
                 logger.debug("Пользователь успешно сохранён в БД: ID={}, Email={}",
                         user.getId(), user.getEmail());
             } catch (Exception e) {
@@ -38,17 +47,16 @@ public class UserDAOImpl implements UserDAO {
                         user.getName(), user.getEmail(), e);
                 throw e;
             }
-        } catch (Exception e) {
-            logger.error("Критическая ошибка при открытии сессии Hibernate для сохранения пользователя: ", e);
-            throw e;
         }
     }
+
+
 
     @Override
     public User getUserById(Long id) {
         logger.debug("Поиск пользователя по ID: {}", id);
 
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+        try (Session session = sessionFactory.openSession()) {
             User user = session.get(User.class, id);
 
             if (user != null) {
@@ -69,7 +77,7 @@ public class UserDAOImpl implements UserDAO {
     public List<User> getAllUsers() {
         logger.debug("Запрос всех пользователей из БД");
 
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+        try (Session session = sessionFactory.openSession()) {
             List<User> users = session.createQuery("FROM User", User.class).list();
             logger.debug("Получено {} пользователей из БД", users.size());
             return users;
@@ -81,39 +89,37 @@ public class UserDAOImpl implements UserDAO {
 
     @Override
     public void updateUser(User user) {
-        logger.debug("Обновление пользователя с ID={}: Name={}, Email={}",
-                user.getId(), user.getName(), user.getEmail());
-
-        // Валидация перед обновлением
+        logger.debug("Обновление пользователя с ID: {}", user.getId());
         Validation.validateName(user.getName());
         Validation.validateEmail(user.getEmail());
         Validation.validateAge(user.getAge());
-
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            Transaction transaction = session.beginTransaction();
-
+        try (Session session = sessionFactory.openSession()) {
+            Transaction tx = session.beginTransaction();
             try {
-                session.update(user);
-                transaction.commit();
-                logger.debug("Пользователь с ID={} успешно обновлён", user.getId());
-            } catch (Exception e) {
-                if (transaction != null && transaction.isActive()) {
-                    transaction.rollback();
+                User managedUser = session.get(User.class, user.getId());
+                if (managedUser == null) {
+                    throw new IllegalArgumentException("Пользователь с ID " + user.getId() + " не найден");
                 }
-                logger.error("Ошибка при обновлении пользователя с ID={}: ", user.getId(), e);
+                managedUser.setName(user.getName());
+                managedUser.setEmail(user.getEmail());
+                managedUser.setAge(user.getAge());
+                tx.commit();
+            } catch (Exception e) {
+                if (tx != null && tx.isActive()) {
+                    tx.rollback();
+                }
                 throw e;
             }
-        } catch (Exception e) {
-            logger.error("Критическая ошибка при открытии сессии Hibernate для обновления пользователя: ", e);
-            throw e;
         }
     }
+
+
 
     @Override
     public boolean deleteUser(Long id) {
         logger.debug("Удаление пользователя с ID: {}", id);
 
-        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+        try (Session session = sessionFactory.openSession()) {
             Transaction transaction = session.beginTransaction();
 
             try {
