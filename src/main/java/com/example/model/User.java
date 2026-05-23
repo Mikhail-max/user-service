@@ -1,11 +1,12 @@
 package com.example.model;
 
 import jakarta.persistence.*;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-@Entity
+@EntityGraph
 @Table(name = "users")
 public class User {
     @Id
