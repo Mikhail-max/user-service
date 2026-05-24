@@ -1,20 +1,31 @@
 package com.example.ui;
 
+import com.example.dto.UserCreateDto;
+import com.example.dto.UserUpdateDto;
+import com.example.exception.UserNotFoundException;
 import com.example.service.UserService;
 import com.example.model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.SpringApplication;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.stereotype.Service;
+
+
 import java.util.List;
 import java.util.Scanner;
 
+@Service
 public class ConsoleUI {
     private static final Logger logger = LoggerFactory.getLogger(ConsoleUI.class);
     private final UserService userService;
     private final Scanner scanner;
+    private final ConfigurableApplicationContext context;
 
-    public ConsoleUI(UserService userService) {
+    public ConsoleUI(UserService userService, ConfigurableApplicationContext context) {
         this.userService = userService;
         this.scanner = new Scanner(System.in);
+        this.context = context;
         logger.info("Инициализирован консольный интерфейс");
     }
 
@@ -24,7 +35,7 @@ public class ConsoleUI {
         while (true) {
             showMenu();
             int choice = scanner.nextInt();
-            scanner.nextLine(); // очистка буфера
+            scanner.nextLine();
 
             switch (choice) {
                 case 1:
@@ -50,6 +61,8 @@ public class ConsoleUI {
                 case 0:
                     logger.info("Выход из приложения");
                     System.out.println("До свидания!");
+                    scanner.close();
+                    SpringApplication.exit(context);
                     return;
                 default:
                     logger.warn("Некорректный выбор пункта меню: {}", choice);
@@ -72,37 +85,94 @@ public class ConsoleUI {
         System.out.print("Выберите действие: ");
     }
 
-    private void createUser() {
-        try {
+    private UserCreateDto getUserCreateInput() {
+        UserCreateDto dto = new UserCreateDto();
+        boolean validInput = false;
+
+        while (!validInput) {
             System.out.print("Введите имя: ");
-            String name = scanner.nextLine();
+            String name = scanner.nextLine().trim();
+            if (name.isEmpty()) {
+                System.out.println("❌ Имя не может быть пустым. Попробуйте снова.");
+                continue;
+            }
+            dto.setName(name);
 
             System.out.print("Введите email: ");
-            String email = scanner.nextLine();
+            String email = scanner.nextLine().trim();
+            if (email.isEmpty()) {
+                System.out.println("❌ Email не может быть пустым. Попробуйте снова.");
+                continue;
+            } else if (!isValidEmail(email)) {
+                System.out.println("❌ Email должен быть корректным. Попробуйте снова.");
+                continue;
+            }
+            dto.setEmail(email);
 
             System.out.print("Введите возраст: ");
-            Integer age = Integer.parseInt(scanner.nextLine());
+            String ageInput = scanner.nextLine().trim();
+            try {
+                int age = Integer.parseInt(ageInput);
+                if (age < 0) {
+                    System.out.println("❌ Возраст должен быть неотрицательным числом. Попробуйте снова.");
+                    continue;
+                }
+                dto.setAge(age);
+            } catch (NumberFormatException e) {
+                System.out.println("❌ Возраст должен быть числом. Попробуйте снова.");
+                continue;
+            }
 
-            logger.debug("Введённые данные для создания пользователя: Name='{}', Email='{}', Age={}",
-                    name, email, age);
+            validInput = true; // Все поля прошли проверку
+        }
 
-            User user = userService.createUser(name, email, age);
-            System.out.println("✅ Пользователь успешно создан с ID: " + user.getId());
-        } catch (NumberFormatException e) {
-            logger.warn("Некорректный формат возраста при создании пользователя");
-            System.out.println("Ошибка: Возраст должен быть числом!");
-        } catch (IllegalArgumentException e) {
-            logger.warn("Ошибка ввода данных при создании пользователя: {}", e.getMessage());
-            System.out.println("Ошибка: " + e.getMessage());
+        return dto;
+    }
+
+    // Вспомогательный метод для проверки email
+    private boolean isValidEmail(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$";
+        return email.matches(emailRegex);
+    }
+
+
+    private void createUser() {
+        try {
+            UserCreateDto createDto = getUserCreateInput();
+            User createdUser = userService.createUser(createDto);
+            System.out.println("✅ Пользователь успешно создан с ID: " + createdUser.getId());
         } catch (Exception e) {
-            logger.error("Неожиданная ошибка при создании пользователя: ", e);
-            System.out.println("Произошла непредвиденная ошибка при создании пользователя.");
+            logger.error("Ошибка при создании пользователя: ", e);
+            System.out.println("Произошла ошибка при создании пользователя.");
         }
     }
 
-    /**
-     * Поиск пользователя по ID через консольный ввод
-     */
+    private void updateUser() {
+        Long updateId = null;
+        try {
+            System.out.print("Введите ID пользователя для обновления: ");
+            updateId = Long.parseLong(scanner.nextLine());
+            logger.debug("Получен ID пользователя для обновления: {}", updateId);
+
+            UserUpdateDto updateDto = getUserUpdateInput();
+            userService.updateUser(updateId, updateDto);
+            System.out.println("✅ Пользователь успешно обновлён!");
+        } catch (NumberFormatException e) {
+            logger.warn("Некорректный формат ID при обновлении пользователя");
+            System.out.println("Ошибка: ID должен быть числом!");
+        } catch (UserNotFoundException e) {
+            logger.warn("Пользователь с ID {} не найден: {}", updateId, e.getMessage());
+            System.out.println("❌ Пользователь с ID " + updateId + " не найден.");
+        } catch (Exception e) {
+            logger.error("Ошибка при обновлении пользователя: ", e);
+            System.out.println("Произошла ошибка при обновлении пользователя.");
+        }
+    }
+
+
+
+
+
     private void getUserById() {
         Long id = null;
         try {
@@ -120,7 +190,7 @@ public class ConsoleUI {
         } catch (NumberFormatException e) {
             logger.warn("Некорректный формат ID при поиске пользователя");
             System.out.println("Ошибка: ID должен быть числом!");
-        } catch (IllegalArgumentException e) {
+        } catch (UserNotFoundException  e) {
             // Обработка случая, когда пользователь не найден (выбрасывается из getUserById)
             logger.warn("Пользователь с ID {} не найден: {}", id, e.getMessage());
             System.out.println("❌ Пользователь с ID " + id + " не найден.");
@@ -130,9 +200,7 @@ public class ConsoleUI {
         }
     }
 
-    /**
-     * Вывод списка всех пользователей
-     */
+
     private void getAllUsers() {
         try {
             logger.info("Запрос списка всех пользователей через UI");
@@ -153,42 +221,44 @@ public class ConsoleUI {
         }
     }
 
-    /**
-     * Обновление информации о пользователе через консольный ввод
-     */
-    private void updateUser() {
-        try {
-            System.out.print("Введите ID пользователя для обновления: ");
-            Long id = Long.parseLong(scanner.nextLine());
+    private UserUpdateDto getUserUpdateInput() {
+        UserUpdateDto dto = new UserUpdateDto();
 
-            System.out.print("Введите новое имя (или оставьте пустым): ");
-            String name = scanner.nextLine().trim();
-            if (name.isEmpty()) name = null;
-
-            System.out.print("Введите новый email (или оставьте пустым): ");
-            String email = scanner.nextLine().trim();
-            if (email.isEmpty()) email = null;
-
-            System.out.print("Введите новый возраст (или оставьте пустым): ");
-            String ageInput = scanner.nextLine().trim();
-            Integer age = ageInput.isEmpty() ? null : Integer.parseInt(ageInput);
-
-            logger.debug("Данные для обновления пользователя ID={}: Name='{}', Email='{}', Age={}",
-                    id, name, email, age);
-
-            User updatedUser = userService.updateUser(id, name, email, age);
-            System.out.println("✅ Пользователь с ID " + updatedUser.getId() + " успешно обновлён.");
-        } catch (NumberFormatException e) {
-            logger.warn("Некорректный формат данных при обновлении пользователя");
-            System.out.println("Ошибка: Проверьте корректность введённых данных!");
-        } catch (IllegalArgumentException e) {
-            logger.warn("Ошибка ввода данных при обновлении пользователя: {}", e.getMessage());
-            System.out.println("Ошибка: " + e.getMessage());
-        } catch (Exception e) {
-            logger.error("Ошибка при обновлении пользователя: ", e);
-            System.out.println("Произошла ошибка при обновлении пользователя.");
+        System.out.print("Введите новое имя (оставьте пустым, чтобы не менять): ");
+        String name = scanner.nextLine().trim();
+        if (!name.isEmpty()) {
+            dto.setName(name);
         }
+
+        System.out.print("Введите новый email (оставьте пустым, чтобы не менять): ");
+        String email = scanner.nextLine().trim();
+        if (!email.isEmpty()) {
+            if (!isValidEmail(email)) {
+                System.out.println("❌ Email должен быть корректным. Поле не будет обновлено.");
+            } else {
+                dto.setEmail(email);
+            }
+        }
+
+        System.out.print("Введите новый возраст (оставьте пустым, чтобы не менять): ");
+        String ageInput = scanner.nextLine().trim();
+        if (!ageInput.isEmpty()) {
+            try {
+                int age = Integer.parseInt(ageInput);
+                if (age < 0) {
+                    System.out.println("❌ Возраст должен быть неотрицательным числом. Поле не будет обновлено.");
+                } else {
+                    dto.setAge(age);
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("❌ Возраст должен быть числом. Поле не будет обновлено.");
+            }
+        }
+
+        return dto;
     }
+
+
 
     private void deleteUser() {
         try {

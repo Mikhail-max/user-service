@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-@EntityGraph
+@Entity
 @Table(name = "users")
 public class User {
     @Id
@@ -28,7 +28,7 @@ public class User {
     public User() {
     }
 
-    ;
+
 
     public User(String name, String email, Integer age) {
         this.name = name;
