@@ -1,6 +1,7 @@
 package com.example.model;
 
 import jakarta.persistence.*;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -27,7 +28,7 @@ public class User {
     public User() {
     }
 
-    ;
+
 
     public User(String name, String email, Integer age) {
         this.name = name;

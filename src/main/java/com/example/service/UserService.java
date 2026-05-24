@@ -1,130 +1,77 @@
 package com.example.service;
 
-import com.example.dao.UserDAO;
+import com.example.dto.UserCreateDto;
+import com.example.dto.UserUpdateDto;
+import com.example.exception.UserNotFoundException;
 import com.example.model.User;
-import com.example.validation.Validation;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.repository.UserRepository;
+import jakarta.validation.Valid;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+
 import java.util.List;
 
+import static com.example.validation.Validation.logger;
+
+@Service
+@Validated
 public class UserService {
-    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
-    private final UserDAO userDAO;
 
-    public UserService(UserDAO userDAO) {
-        this.userDAO = userDAO;
-        logger.info("Инициализирован UserService с DAO: {}", userDAO.getClass().getSimpleName());
+    private final UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
     }
 
-    public User createUser(String name, String email, Integer age) {
-        logger.info("Начало создания пользователя: Name='{}', Email='{}', Age={}", name, email, age);
-
-
-        Validation.validateName(name);
-        Validation.validateEmail(email);
-        Validation.validateAge(age);
-
-        try {
-            User user = new User(name.trim(), email.toLowerCase(), age);
-            userDAO.saveUser(user);
-            logger.info("Пользователь успешно создан с ID: {}", user.getId());
-            return user;
-        } catch (Exception e) {
-            logger.error("Критическая ошибка при создании пользователя (Name='{}', Email='{}'): ", name, email, e);
-            throw e;
-        }
+    @Transactional
+    public User createUser(@Valid UserCreateDto createDto) {
+        User user = new User();
+        user.setName(createDto.getName());
+        user.setEmail(createDto.getEmail());
+        user.setAge(createDto.getAge());
+        User savedUser = userRepository.save(user);
+        logger.info("Создан новый пользователь с ID: {}", savedUser.getId());
+        return savedUser;
     }
 
-    public User getUserById(Long id) {
-        logger.debug("Запрос пользователя по ID: {}", id);
+    @Transactional
+    public User updateUser(Long id, @Valid UserUpdateDto updateDto) {
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + id + " не найден"));
 
-        if (id == null || id <= 0) {
-            logger.warn("Попытка получения пользователя с некорректным ID: {}", id);
-            throw new IllegalArgumentException("ID пользователя не может быть null или отрицательным");
+        if (updateDto.getName() != null) {
+            existingUser.setName(updateDto.getName());
+        }
+        if (updateDto.getEmail() != null) {
+            existingUser.setEmail(updateDto.getEmail());
+        }
+        if (updateDto.getAge() != null) {
+            existingUser.setAge(updateDto.getAge());
         }
 
-        try {
-            User user = userDAO.getUserById(id);
-            if (user != null) {
-                logger.debug("Найден пользователь: ID={}, Name='{}', Email='{}'",
-                        user.getId(), user.getName(), user.getEmail());
-                return user;
-            } else {
-                logger.warn("Пользователь с ID={} не найден в базе данных", id);
-                throw new IllegalArgumentException("Пользователь с ID " + id + " не найден");
-            }
-        } catch (Exception e) {
-            logger.error("Ошибка при поиске пользователя с ID={}: ", id, e);
-            throw e;
-        }
+        User updatedUser = userRepository.save(existingUser);
+        logger.info("Обновлён пользователь с ID: {}", id);
+        return updatedUser;
     }
 
     public List<User> getAllUsers() {
-        logger.info("Запрос списка всех пользователей");
-
-        try {
-            List<User> users = userDAO.getAllUsers();
-            logger.info("Получено {} пользователей из базы данных", users.size());
-            return users;
-        } catch (Exception e) {
-            logger.error("Ошибка при получении списка пользователей: ", e);
-            throw e;
-        }
+        return userRepository.findAll();
     }
 
-    public User updateUser(Long id, String name, String email, Integer age) {
-        logger.info("Начало обновления пользователя с ID={}: Name='{}', Email='{}', Age={}",
-                id, name, email, age);
-
-        User existingUser = getUserById(id);
-
-
-        Validation.validateName(name);
-        existingUser.setName(name.trim());
-
-        if (email != null) {
-            Validation.validateEmail(email);
-            existingUser.setEmail(email.toLowerCase());
-        } else {
-            logger.debug("Email не обновлён (получен null), сохраняется текущее значение: '{}'", existingUser.getEmail());
-        }
-
-        if (age != null) {
-            Validation.validateAge(age);
-            existingUser.setAge(age);
-        } else {
-            logger.debug("Возраст не обновлён (получен null), сохраняется текущее значение: {}", existingUser.getAge());
-        }
-
-        try {
-            userDAO.updateUser(existingUser);
-            logger.info("Пользователь с ID={} успешно обновлён", id);
-            return existingUser;
-        } catch (Exception e) {
-            logger.error("Ошибка при обновлении пользователя с ID={}: ", id, e);
-            throw e;
-        }
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь с ID " + id + " не найден"));
     }
 
+    @Transactional
     public boolean deleteUser(Long id) {
-        logger.warn("Начало удаления пользователя с ID: {}", id);
-
-        if (id == null || id <= 0) {
-            logger.warn("Попытка удаления пользователя с некорректным ID: {}", id);
+        if (!userRepository.existsById(id)) {
             return false;
         }
-
-        try {
-            boolean isDeleted = userDAO.deleteUser(id);
-            if (isDeleted) {
-                logger.info("Пользователь с ID={} успешно удалён из базы данных", id);
-            } else {
-                logger.warn("Пользователь с ID={} не найден при попытке удаления", id);
-            }
-            return isDeleted;
-        } catch (Exception e) {
-            logger.error("Ошибка при удалении пользователя с ID={}: ", id, e);
-            throw e;
-        }
+        userRepository.deleteById(id);
+        logger.info("Пользователь с ID {} успешно удалён", id);
+        return true;
     }
+
 }

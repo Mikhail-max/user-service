@@ -4,7 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Validation {
-    private static final Logger logger = LoggerFactory.getLogger(Validation.class);
+    public static final Logger logger = LoggerFactory.getLogger(Validation.class);
 
 
     public static void validateName(String name) {
