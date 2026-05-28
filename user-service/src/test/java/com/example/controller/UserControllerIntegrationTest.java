@@ -346,7 +346,7 @@ public class UserControllerIntegrationTest {
         // When & Then
         mockMvc.perform(put("/api/users/{id}", userId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"updated@example.com\"}"))
+                        .content("{\"email\":\"updated@example.c    om\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(userId))
                 .andExpect(jsonPath("$.name").value("Анна Петрова"))

@@ -19,9 +19,12 @@ import static com.example.validation.Validation.logger;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final KafkaUserEventService kafkaUserEventService;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, KafkaUserEventService kafkaUserEventService) {
+
         this.userRepository = userRepository;
+        this.kafkaUserEventService = kafkaUserEventService;
     }
 
     @Transactional
@@ -32,6 +35,7 @@ public class UserService {
         user.setAge(createDto.getAge());
         User savedUser = userRepository.save(user);
         logger.info("Создан новый пользователь с ID: {}", savedUser.getId());
+        kafkaUserEventService.sendUserCreatedEvent(savedUser.getEmail());
         return savedUser;
     }
 
@@ -69,9 +73,21 @@ public class UserService {
         if (!userRepository.existsById(id)) {
             return false;
         }
+
+        User userToDelete = userRepository.findById(id).orElse(null);
+        if (userToDelete == null) {
+            return false;
+        }
+
+        String email = userToDelete.getEmail();
         userRepository.deleteById(id);
         logger.info("Пользователь с ID {} успешно удалён", id);
+
+
+        kafkaUserEventService.sendUserDeletedEvent(email);
+
         return true;
     }
+
 
 }
