@@ -11,11 +11,13 @@ import org.springframework.context.ConfigurableApplicationContext;
 public class UserServiceApplication {
 
     public static void main(String[] args) {
+
         ConfigurableApplicationContext context = SpringApplication.run(UserServiceApplication.class, args);
         Logger logger = LoggerFactory.getLogger(UserServiceApplication.class);
         logger.info("Запуск Spring Boot приложения user-service...");
         ConsoleUI consoleUI = context.getBean(ConsoleUI.class);
         consoleUI.start();
+
 
     }
 }
