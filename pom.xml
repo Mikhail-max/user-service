@@ -17,20 +17,15 @@
 
   <properties>
     <java.version>21</java.version>
-    <spring-boot.version>4.0.5</spring-boot.version>
   </properties>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-dependencies</artifactId>
-        <version>${spring-boot.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.0.5</version>
+    <relativePath/>
+  </parent>
+
 
 
   <!-- Управление версиями плагинов -->
@@ -40,7 +35,7 @@
         <plugin>
           <groupId>org.springframework.boot</groupId>
           <artifactId>spring-boot-maven-plugin</artifactId>
-          <version>${spring-boot.version}</version>
+          <version>4.0.5</version>
         </plugin>
       </plugins>
     </pluginManagement>
