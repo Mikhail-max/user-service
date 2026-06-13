@@ -6,6 +6,8 @@ import com.example.exception.UserNotFoundException;
 import com.example.mapper.UserMapper;
 import com.example.model.User;
 import com.example.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.hateoas.CollectionModel;
 import org.springframework.hateoas.EntityModel;
@@ -15,13 +17,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.stream.Collectors;
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
-
 import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 
 @RestController
 @RequestMapping("/api/users")
-@io.swagger.v3.oas.annotations.tags.Tag(name = "User API", description = "Операции по управлению пользователями")
+@Tag(name = "User API", description = "Операции по управлению пользователями")
 public class UserController {
 
     private final UserService userService;
@@ -35,7 +36,7 @@ public class UserController {
 
 
     @GetMapping
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Получить всех пользователей",
             description = "Возвращает список всех пользователей с ссылками на каждый ресурс"
     )
@@ -60,7 +61,7 @@ public class UserController {
 
 
     @GetMapping("/{id}")
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Получить пользователя по ID",
             description = "Возвращает информацию о пользователе по его ID с ссылкой на сам ресурс"
     )
@@ -77,7 +78,7 @@ public class UserController {
 
 
     @PostMapping
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Создать нового пользователя",
             description = "Создаёт нового пользователя и возвращает его с ссылкой на ресурс"
     )
@@ -121,11 +122,11 @@ public class UserController {
 
 
     @DeleteMapping("/{id}")
-    @io.swagger.v3.oas.annotations.Operation(
+    @Operation(
             summary = "Удалить пользователя",
             description = "Удаляет пользователя по ID"
     )
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteUser(@PathVariable("id") Long id) {
         boolean isDeleted = userService.deleteUser(id);
         if (!isDeleted) {
             throw new UserNotFoundException("Пользователь с ID " + id + " не найден");
