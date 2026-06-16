@@ -1,0 +1,97 @@
+
+# Настройка подключения к БД
+spring:
+  cloud:
+    config:
+      enabled: false
+  datasource:
+    url: jdbc:postgresql://postgres:5432/postgres
+    username: postgres
+    password: LMk0DArC
+
+  # Настройки JPA
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+    # Kafka настройки
+    kafka:
+      bootstrap-servers: kafka:9092
+      producer:
+        key-serializer: org.apache.kafka.common.serialization.StringSerializer
+        value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      consumer:
+        group-id: notification-service-group
+        key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+        value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring:
+          json:
+            trusted:
+              packages: "*"
+
+
+    # Email настройки
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: your-email@gmail.com
+    password: your-app-password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  application:
+    name: user-service
+
+# Порт приложения
+server:
+  port: 8080
+
+# Логирование
+logging:
+  level:
+    org.hibernate.SQL: INFO
+    com.example: INFO
+
+# Настройки OpenAPI / Swagger
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui
+  packages-to-scan: com.example.controller
+  hateoas-support: true
+
+
+# Конфигурация Eureka
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      kafkaService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 3
+        record-exceptions:
+          - org.springframework.web.client.RestClientException
+          - java.util.concurrent.TimeoutException
+          - org.apache.kafka.common.errors.TimeoutException
+        ignore-exceptions:
+          - java.lang.IllegalArgumentException
+
+

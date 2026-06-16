@@ -1,0 +1,32 @@
+server:
+  port: 8085
+
+spring:
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: earliest
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${NOTIFICATION_EMAIL:your-email@gmail.com}
+    password: ${NOTIFICATION_PASSWORD:your-password}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka/
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
